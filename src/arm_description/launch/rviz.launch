@@ -1,0 +1,17 @@
+<launch>
+
+    <!-- Generate/Load robot description file -->
+    <param name="robot_description" command="$(find xacro)/xacro '$(find arm_description)/urdf/arm.urdf.xacro'" />
+
+    <!-- Joint state publisher opens a GUI to input joint states -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+        <param name="use_gui" value="true"/>
+    </node>
+
+    <!-- Robot state publisher subscribe to joint states and publish "tf" transforms -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+    <!-- Rviz to vizualize robot -->
+    <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d '$(find arm_description)/rviz/arm.rviz'" />
+
+</launch>

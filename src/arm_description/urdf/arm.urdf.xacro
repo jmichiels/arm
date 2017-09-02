@@ -1,0 +1,165 @@
+<?xml version="1.0"?>
+<robot name="arm" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:property name="PI"  value="3.14159265359" />
+
+    <!-- Geometrical properties -->
+    <xacro:property name="link_side"    value="0.02" />
+    <xacro:property name="joint_radius" value="0.018" />
+    <xacro:property name="joint_length" value="0.025" />
+    <xacro:property name="foot_length"  value="0.03" />
+    <xacro:property name="ankle_length" value="0.04" />
+    <xacro:property name="leg_length"   value="0.40" />
+    <xacro:property name="arm_length"   value="0.30" />
+    <xacro:property name="wrist_length" value="0.04" />
+    <xacro:property name="hand_length"  value="0.03" />
+
+    <!-- Materials -->
+    <material name="orange">
+        <color rgba="1.00 0.67 0.02 1.00"/>
+    </material>
+
+    <material name="gray">
+        <color rgba="0.80 0.80 0.80 1.00"/>
+    </material>
+
+    <!-- Foot -->
+    <link name="foot">
+        <visual>
+            <origin xyz="0 0 ${foot_length/2}" rpy="0 0 0" />
+            <geometry>
+                <box size="${link_side} ${link_side} ${foot_length}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+    </link>
+
+    <joint name="foot_ankle_joint" type="continuous">
+        <origin xyz="0 0 ${foot_length}" rpy="0 0 0"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <parent link="foot"/>
+        <child link="ankle"/>
+    </joint>
+
+    <!-- Ankle -->
+    <link name="ankle">
+        <visual>
+            <origin xyz="0 0 ${ankle_length/2}" rpy="0 0 0" />
+            <geometry>
+                <box size="${link_side} ${link_side} ${ankle_length}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length ="${joint_length}" radius="${joint_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+    </link>
+
+    <joint name="ankle_leg_joint" type="revolute">
+        <origin xyz="0 0 ${ankle_length}" rpy="0 -${PI/2} 0"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="30" velocity="1.0" lower="${-PI/2}" upper="${PI/2}" />
+        <parent link="ankle"/>
+        <child link="leg"/>
+    </joint>
+
+    <!-- Leg -->
+    <link name="leg">
+        <visual>
+            <origin xyz="${leg_length/2} 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="${leg_length} ${link_side} ${link_side}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length ="${joint_length}" radius="${joint_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+    </link>
+
+    <joint name="leg_arm_joint" type="revolute">
+        <origin xyz="${leg_length} 0 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="30" velocity="1.0" lower="${-2*PI/3}" upper="${2*PI/3}" />
+        <parent link="leg"/>
+        <child link="arm"/>
+    </joint>
+
+    <!-- Arm -->
+    <link name="arm">
+        <visual>
+            <origin xyz="${arm_length/2} 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="${arm_length} ${link_side} ${link_side}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length ="${joint_length}" radius="${joint_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+    </link>
+
+    <joint name="arm_wrist_joint" type="continuous">
+        <origin xyz="${arm_length} 0 0" rpy="0 ${PI/2} 0"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <parent link="arm"/>
+        <child link="wrist"/>
+    </joint>
+
+    <!-- Wrist -->
+    <link name="wrist">
+        <visual>
+            <origin xyz="0 0 ${wrist_length/2}" rpy="0 0 0" />
+            <geometry>
+                <box size="${link_side} ${link_side} ${wrist_length}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length ="${joint_length}" radius="${joint_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+    </link>
+
+    <joint name="wrist_hand_joint" type="revolute">
+        <origin xyz="0 0 ${wrist_length}" rpy="0 ${-PI/2} 0"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="30" velocity="1.0" lower="${-PI/2}" upper="${PI/2}" />
+        <parent link="wrist"/>
+        <child link="hand"/>
+    </joint>
+
+    <!-- Hand -->
+    <link name="hand">
+        <visual>
+            <origin xyz="${hand_length/2} 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="${wrist_length} ${link_side} ${link_side}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length ="${joint_length}" radius="${joint_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+    </link>
+
+</robot>
