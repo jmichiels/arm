@@ -1,9 +1,9 @@
 <launch>
 
     <!-- Generate/Load robot description file -->
-    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find arm_description)/urdf/arm.urdf.xacro'" />
+    <include file="$(find arm_description)/launch/description.launch"/>
 
-    <!-- Joint state publisher opens a GUI to input joint states -->
+    <!-- Joint state publisher opens a GUI to manually input joint states -->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
         <param name="use_gui" value="true"/>
     </node>

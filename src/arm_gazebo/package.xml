@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>arm_simulator</name>
+  <name>arm_gazebo</name>
   <version>0.0.0</version>
-  <description>The arm_simulator package</description>
+  <description>The arm_gazebo package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -40,6 +40,11 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>arm_description</run_depend>
+
+  <run_depend>ros_control</run_depend>
+  <run_depend>ros_controllers</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

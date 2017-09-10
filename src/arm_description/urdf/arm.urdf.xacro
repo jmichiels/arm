@@ -1,229 +1,160 @@
 <?xml version="1.0"?>
 <robot name="arm" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-    <xacro:property name="PI"  value="3.14159265359" />
+  <xacro:property name="PI" value="3.14159265359"/>
 
-    <!-- Geometrical properties -->
-    <xacro:property name="link_side"    value="0.02" />
-    <xacro:property name="joint_radius" value="0.018" />
-    <xacro:property name="joint_length" value="0.025" />
-    <xacro:property name="foot_length"  value="0.03" />
-    <xacro:property name="ankle_length" value="0.04" />
-    <xacro:property name="leg_length"   value="0.40" />
-    <xacro:property name="arm_length"   value="0.30" />
-    <xacro:property name="wrist_length" value="0.04" />
-    <xacro:property name="hand_length"  value="0.03" />
+  <!-- Joints Control in Gazebo -->
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so"/>
+  </gazebo>
 
-    <!-- Materials -->
-    <material name="orange">
-        <color rgba="1.00 0.67 0.02 1.00"/>
-    </material>
+  <!-- Geometrical properties -->
+  <xacro:property name="link_side" value="0.02"/>
+  <xacro:property name="joint_radius" value="0.018"/>
+  <xacro:property name="joint_length" value="0.025"/>
+  <xacro:property name="toe_length" value="0.03"/>
+  <xacro:property name="foot_length" value="0.04"/>
+  <xacro:property name="leg_length" value="0.40"/>
+  <xacro:property name="arm_length" value="0.30"/>
+  <xacro:property name="hand_length" value="0.04"/>
+  <xacro:property name="finger_length" value="0.03"/>
 
-    <material name="gray">
-        <color rgba="0.80 0.80 0.80 1.00"/>
-    </material>
+  <!-- Materials -->
+  <material name="orange">
+    <color rgba="1.00 0.67 0.02 1.00"/>
+  </material>
 
-    <!-- Generates a box visual/collision/inertial -->
-    <xacro:macro name="prism_vci" params="side length *origin">
+  <material name="gray">
+    <color rgba="0.80 0.80 0.80 1.00"/>
+  </material>
 
-        <xacro:macro name="prism_geometry">
-            <xacro:insert_block name="origin" />
-            <geometry>
-                <box size="${side} ${side} ${length}"/>
-            </geometry>
-        </xacro:macro>
+  <!-- Generates a box visual/collision/inertial -->
+  <xacro:macro name="prism_vci" params="side length mass:=1 *origin">
 
-        <visual>
-            <xacro:prism_geometry/>
-            <material name="orange"/>
-        </visual>
-
-        <collision>
-            <xacro:prism_geometry/>
-        </collision>
-
+    <xacro:macro name="prism_geometry">
+      <xacro:insert_block name="origin"/>
+      <geometry>
+        <box size="${side} ${side} ${length}"/>
+      </geometry>
     </xacro:macro>
 
-    <!-- Generates a cylinder visual/collision/inertial -->
-    <xacro:macro name="cylinder_vci" params="radius length *origin">
+    <visual>
+      <xacro:prism_geometry/>
+      <material name="orange"/>
+    </visual>
 
-        <xacro:macro name="cylinder_geometry">
-            <xacro:insert_block name="origin" />
-            <geometry>
-                <cylinder length ="${length}" radius="${radius}"/>
-            </geometry>
-        </xacro:macro>
+    <collision>
+      <xacro:prism_geometry/>
+    </collision>
 
-        <visual>
-            <xacro:cylinder_geometry/>
-            <material name="gray"/>
-        </visual>
+    <inertial>
+      <xacro:insert_block name="origin"/>
+      <mass value="${mass}"/>
+      <inertia ixx="${(mass/12)*(side*side+length*length)}"
+               iyy="${(mass/12)*(side*side+length*length)}"
+               izz="${(mass/6)*(side*side)}"
+               ixy="0" ixz="0" iyz="0"/>
+    </inertial>
 
-        <collision>
-            <xacro:cylinder_geometry/>
-        </collision>
+  </xacro:macro>
 
+  <!-- Generates a cylinder visual/collision -->
+  <xacro:macro name="cylinder_vc" params="radius length *origin">
+
+    <xacro:macro name="cylinder_geometry">
+      <xacro:insert_block name="origin"/>
+      <geometry>
+        <cylinder length="${length}" radius="${radius}"/>
+      </geometry>
     </xacro:macro>
 
-    <!-- Generates child joint of parent -->
-    <xacro:macro name="arm_joint" params="name parent dist:=0 type axis">
+    <visual>
+      <xacro:cylinder_geometry/>
+      <material name="gray"/>
+    </visual>
 
-        <joint name="${parent}_${name}_joint" type="continuous">
-            <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
-            <parent link="${parent}"/>
-            <child link="${name}"/>
-            <axis xyz="${axis}" />
-        </joint>
+    <collision>
+      <xacro:cylinder_geometry/>
+    </collision>
 
-        <link name="${parent}">
+  </xacro:macro>
 
-            <xacro:prism_vci length="${dist}" side="${link_side}">
-                <origin xyz="0 0 ${dist/2}" rpy="0 0 0"/>
-            </xacro:prism_vci>
+  <!-- Generates child joint of parent -->
+  <xacro:macro name="arm_joint" params="child parent dist:=0 type axis">
 
-            <xacro:if value="${type!='fixed'}">
-                <xacro:cylinder_vci radius="${joint_radius}" length="${joint_length}">
-
-                    <xacro:if value="${axis=='0 0 1'}">
-                        <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
-                    </xacro:if>
-
-                    <xacro:if value="${axis!='0 0 1'}">
-                        <origin xyz="0 0 ${dist}" rpy="${PI/2} 0 0"/>
-                    </xacro:if>
-
-                </xacro:cylinder_vci>
-            </xacro:if>
-
-        </link>
-
-    </xacro:macro>
-
-    <!-- World frame (for Gazebo) -->
-    <link name="world" />
-
-    <!-- Arm fixed to world frame  -->
-    <joint name="world_foot_joint" type="fixed">
-        <parent link="world"/>
-        <child link="foot"/>
+    <joint name="${parent}_${child}_joint" type="revolute">
+      <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <axis xyz="${axis}"/>
+      <limit effort="30.0" velocity="1.0" lower="${-PI/2}" upper="${PI/2}" />
     </joint>
 
-    <!-- Joints Chain -->
-    <xacro:arm_joint name="ankle" parent="foot"  type="continuous" axis="0 0 1" dist="${foot_length}"  />
-    <xacro:arm_joint name="leg"   parent="ankle" type="continuous" axis="1 0 0" dist="${ankle_length}" />
-    <xacro:arm_joint name="arm"   parent="leg"   type="continuous" axis="1 0 0" dist="${leg_length}"   />
-    <xacro:arm_joint name="wrist" parent="arm"   type="continuous" axis="0 0 1" dist="${arm_length}"   />
-    <xacro:arm_joint name="hand"  parent="wrist" type="continuous" axis="1 0 0" dist="${wrist_length}" />
+    <transmission name="${parent}_${child}_transmission">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${parent}_${child}_joint">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${parent}_${child}_actuator"/>
+    </transmission>
 
-    <!-- End effector -->
-    <link name="hand">
-        <xacro:prism_vci length="${hand_length}" side="${link_side}">
-            <origin xyz="0 0 ${hand_length/2}" rpy="0 0 0"/>
-        </xacro:prism_vci>
+    <link name="${parent}">
+
+      <xacro:prism_vci length="${dist}" side="${link_side}">
+        <origin xyz="0 0 ${dist/2}" rpy="0 0 0"/>
+      </xacro:prism_vci>
+
+      <xacro:if value="${type!='fixed'}">
+        <xacro:cylinder_vc radius="${joint_radius}" length="${joint_length}">
+
+          <xacro:if value="${axis=='0 0 1'}">
+            <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
+          </xacro:if>
+
+          <xacro:if value="${axis=='1 0 0'}">
+            <origin xyz="0 0 ${dist}" rpy="0 ${PI/2} 0"/>
+          </xacro:if>
+
+          <xacro:if value="${axis=='0 1 0'}">
+            <origin xyz="0 0 ${dist}" rpy="${PI/2} 0 0"/>
+          </xacro:if>
+
+        </xacro:cylinder_vc>
+      </xacro:if>
+
     </link>
 
-    <!--&lt;!&ndash; Ankle &ndash;&gt;-->
-    <!--<xacro:arm_link name="ankle" length="${ankle_length}">-->
-        <!--<origin xyz="0 0 ${ankle_length/2}" rpy="0 0 0" />-->
-    <!--</xacro:arm_link>-->
+    <gazebo reference="${parent}">
+      <material>Gazebo/Orange</material>
+    </gazebo>
 
-    <!--<joint name="ankle_leg_joint" type="revolute">-->
-        <!--<origin xyz="0 0 ${ankle_length}" rpy="0 -${PI/2} 0"/>-->
-        <!--<axis xyz="0 0 1" rpy="0 0 0"/>-->
-        <!--<limit effort="30" velocity="1.0" lower="${-PI/2}" upper="${PI/2}" />-->
-        <!--<parent link="ankle"/>-->
-        <!--<child link="leg"/>-->
-    <!--</joint>-->
+  </xacro:macro>
 
-    <!--&lt;!&ndash; Leg &ndash;&gt;-->
-    <!--<link name="leg">-->
-        <!--<visual>-->
-            <!--<origin xyz="${leg_length/2} 0 0" rpy="0 0 0" />-->
-            <!--<geometry>-->
-                <!--<box size="${leg_length} ${link_side} ${link_side}"/>-->
-            <!--</geometry>-->
-            <!--<material name="orange"/>-->
-        <!--</visual>-->
-        <!--<visual>-->
-            <!--<geometry>-->
-                <!--<cylinder length ="${joint_length}" radius="${joint_radius}"/>-->
-            <!--</geometry>-->
-            <!--<material name="gray"/>-->
-        <!--</visual>-->
-    <!--</link>-->
+  <!-- World frame (for Gazebo) -->
+  <link name="world"/>
 
-    <!--<joint name="leg_arm_joint" type="revolute">-->
-        <!--<origin xyz="${leg_length} 0 0" rpy="0 0 0"/>-->
-        <!--<axis xyz="0 0 1" rpy="0 0 0"/>-->
-        <!--<limit effort="30" velocity="1.0" lower="${-2*PI/3}" upper="${2*PI/3}" />-->
-        <!--<parent link="leg"/>-->
-        <!--<child link="arm"/>-->
-    <!--</joint>-->
+  <!-- Arm fixed to world frame  -->
+  <joint name="world_foot_joint" type="fixed">
+    <parent link="world"/>
+    <child link="toe"/>
+  </joint>
 
-    <!--&lt;!&ndash; Arm &ndash;&gt;-->
-    <!--<link name="arm">-->
-        <!--<visual>-->
-            <!--<origin xyz="${arm_length/2} 0 0" rpy="0 0 0" />-->
-            <!--<geometry>-->
-                <!--<box size="${arm_length} ${link_side} ${link_side}"/>-->
-            <!--</geometry>-->
-            <!--<material name="orange"/>-->
-        <!--</visual>-->
-        <!--<visual>-->
-            <!--<geometry>-->
-                <!--<cylinder length ="${joint_length}" radius="${joint_radius}"/>-->
-            <!--</geometry>-->
-            <!--<material name="gray"/>-->
-        <!--</visual>-->
-    <!--</link>-->
+  <!-- Joints Chain -->
+  <xacro:arm_joint child="foot" parent="toe" type="continuous" axis="0 0 1" dist="${toe_length}"/>
+  <xacro:arm_joint child="leg" parent="foot" type="continuous" axis="1 0 0" dist="${foot_length}"/>
+  <xacro:arm_joint child="finger" parent="leg" type="continuous" axis="1 0 0" dist="${leg_length}"/>
+  <!--<xacro:arm_joint child="hand" parent="arm" type="continuous" axis="0 0 1" dist="${arm_length}"/>-->
+  <!--<xacro:arm_joint child="finger" parent="hand" type="continuous" axis="1 0 0" dist="${hand_length}"/>-->
 
-    <!--<joint name="arm_wrist_joint" type="continuous">-->
-        <!--<origin xyz="${arm_length} 0 0" rpy="0 ${PI/2} 0"/>-->
-        <!--<axis xyz="0 0 1" rpy="0 0 0"/>-->
-        <!--<parent link="arm"/>-->
-        <!--<child link="wrist"/>-->
-    <!--</joint>-->
+  <!-- End effector -->
+  <link name="finger">
+    <xacro:prism_vci length="${finger_length}" side="${link_side}">
+      <origin xyz="0 0 ${finger_length/2}" rpy="0 0 0"/>
+    </xacro:prism_vci>
+  </link>
 
-    <!--&lt;!&ndash; Wrist &ndash;&gt;-->
-    <!--<link name="wrist">-->
-        <!--<visual>-->
-            <!--<origin xyz="0 0 ${wrist_length/2}" rpy="0 0 0" />-->
-            <!--<geometry>-->
-                <!--<box size="${link_side} ${link_side} ${wrist_length}"/>-->
-            <!--</geometry>-->
-            <!--<material name="orange"/>-->
-        <!--</visual>-->
-        <!--<visual>-->
-            <!--<geometry>-->
-                <!--<cylinder length ="${joint_length}" radius="${joint_radius}"/>-->
-            <!--</geometry>-->
-            <!--<material name="gray"/>-->
-        <!--</visual>-->
-    <!--</link>-->
-
-    <!--<joint name="wrist_hand_joint" type="revolute">-->
-        <!--<origin xyz="0 0 ${wrist_length}" rpy="0 ${-PI/2} 0"/>-->
-        <!--<axis xyz="0 0 1" rpy="0 0 0"/>-->
-        <!--<limit effort="30" velocity="1.0" lower="${-PI/2}" upper="${PI/2}" />-->
-        <!--<parent link="wrist"/>-->
-        <!--<child link="hand"/>-->
-    <!--</joint>-->
-
-    <!--&lt;!&ndash; Hand &ndash;&gt;-->
-    <!--<link name="hand">-->
-        <!--<visual>-->
-            <!--<origin xyz="${hand_length/2} 0 0" rpy="0 0 0" />-->
-            <!--<geometry>-->
-                <!--<box size="${wrist_length} ${link_side} ${link_side}"/>-->
-            <!--</geometry>-->
-            <!--<material name="orange"/>-->
-        <!--</visual>-->
-        <!--<visual>-->
-            <!--<geometry>-->
-                <!--<cylinder length ="${joint_length}" radius="${joint_radius}"/>-->
-            <!--</geometry>-->
-            <!--<material name="gray"/>-->
-        <!--</visual>-->
-    <!--</link>-->
+  <gazebo reference="finger">
+    <material>Gazebo/Red</material>
+  </gazebo>
 
 </robot>

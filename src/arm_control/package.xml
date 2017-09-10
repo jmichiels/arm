@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>arm_driver</name>
+  <name>arm_control</name>
   <version>0.0.0</version>
-  <description>The arm_driver package</description>
+  <description>The arm_control package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/arm_driver</url> -->
+  <!-- <url type="website">http://wiki.ros.org/arm_control</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -40,6 +40,8 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>gazebo-ros-control</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
