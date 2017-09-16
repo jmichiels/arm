@@ -80,16 +80,20 @@
   </xacro:macro>
 
   <!-- Generates child joint of parent -->
-  <xacro:macro name="arm_joint" params="child parent dist:=0 type axis">
+  <xacro:macro name="arm_joint" params="child parent dist:=0 axis">
 
     <joint name="${parent}_${child}_joint" type="revolute">
       <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
       <parent link="${parent}"/>
       <child link="${child}"/>
       <axis xyz="${axis}"/>
-      <limit effort="30.0" velocity="1.0" lower="${-PI/2}" upper="${PI/2}" />
+      <limit effort="40.0"
+             velocity="1.0"
+             lower="${-PI/2}"
+             upper="${PI/2}"/>
     </joint>
 
+    <!-- Required for ROS control -->
     <transmission name="${parent}_${child}_transmission">
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="${parent}_${child}_joint">
@@ -104,23 +108,21 @@
         <origin xyz="0 0 ${dist/2}" rpy="0 0 0"/>
       </xacro:prism_vci>
 
-      <xacro:if value="${type!='fixed'}">
-        <xacro:cylinder_vc radius="${joint_radius}" length="${joint_length}">
+      <xacro:cylinder_vc radius="${joint_radius}" length="${joint_length}">
 
-          <xacro:if value="${axis=='0 0 1'}">
-            <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
-          </xacro:if>
+        <xacro:if value="${axis=='0 0 1'}">
+          <origin xyz="0 0 ${dist}" rpy="0 0 0"/>
+        </xacro:if>
 
-          <xacro:if value="${axis=='1 0 0'}">
-            <origin xyz="0 0 ${dist}" rpy="0 ${PI/2} 0"/>
-          </xacro:if>
+        <xacro:if value="${axis=='1 0 0'}">
+          <origin xyz="0 0 ${dist}" rpy="0 ${PI/2} 0"/>
+        </xacro:if>
 
-          <xacro:if value="${axis=='0 1 0'}">
-            <origin xyz="0 0 ${dist}" rpy="${PI/2} 0 0"/>
-          </xacro:if>
+        <xacro:if value="${axis=='0 1 0'}">
+          <origin xyz="0 0 ${dist}" rpy="${PI/2} 0 0"/>
+        </xacro:if>
 
-        </xacro:cylinder_vc>
-      </xacro:if>
+      </xacro:cylinder_vc>
 
     </link>
 
@@ -140,11 +142,11 @@
   </joint>
 
   <!-- Joints Chain -->
-  <xacro:arm_joint child="foot" parent="toe" type="continuous" axis="0 0 1" dist="${toe_length}"/>
-  <xacro:arm_joint child="leg" parent="foot" type="continuous" axis="1 0 0" dist="${foot_length}"/>
-  <xacro:arm_joint child="finger" parent="leg" type="continuous" axis="1 0 0" dist="${leg_length}"/>
-  <!--<xacro:arm_joint child="hand" parent="arm" type="continuous" axis="0 0 1" dist="${arm_length}"/>-->
-  <!--<xacro:arm_joint child="finger" parent="hand" type="continuous" axis="1 0 0" dist="${hand_length}"/>-->
+  <xacro:arm_joint parent="toe" child="foot" axis="0 0 1" dist="${toe_length}"/>
+  <xacro:arm_joint parent="foot" child="leg" axis="1 0 0" dist="${foot_length}"/>
+  <xacro:arm_joint parent="leg" child="arm" axis="1 0 0" dist="${leg_length}"/>
+  <xacro:arm_joint parent="arm" child="hand" axis="0 0 1" dist="${arm_length}"/>
+  <xacro:arm_joint parent="hand" child="finger" axis="1 0 0" dist="${hand_length}"/>
 
   <!-- End effector -->
   <link name="finger">

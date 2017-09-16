@@ -1,0 +1,9 @@
+<library path="lib/libarm_control">
+
+  <class name="arm_control/ArmController" type="arm_control::ArmController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      The ArmController bla bla bla...
+    </description>
+  </class>
+
+</library>

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>arm_control</name>
   <version>0.0.0</version>
   <description>The arm_control package</description>
@@ -40,13 +40,15 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
 
-  <run_depend>gazebo-ros-control</run_depend>
-
+  <depend>pluginlib</depend>
+  <depend>gazebo-ros-control</depend>
+  <depend>controller_interface</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
+    <controller_interface plugin="${prefix}/arm_control_plugins.xml"/>
   </export>
 </package>
