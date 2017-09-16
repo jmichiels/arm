@@ -11,6 +11,15 @@ namespace arm_control
     {
     public:
 
+        ArmController() :
+                state_position(5),
+                state_velocity(5),
+                target_position(5),
+                target_velocity(5),
+                inner_loop_control(5),
+                outer_loop_control(5)
+        {}
+
         bool init(hardware_interface::EffortJointInterface *hw, ros::NodeHandle &n)
         {
             // Get the joint handles (throws on failure).
@@ -41,13 +50,12 @@ namespace arm_control
                 return false;
             }
 
-            // Init the joint state.
-            if (chain.getNrOfJoints() != 5) {
+            // Check the number of joints.
+            unsigned int n_joints = chain.getNrOfJoints();
+            if (n_joints != 5) {
                 ROS_ERROR("Invalid number of joints");
                 return false;
             }
-            state_position = new KDL::JntArray(chain.getNrOfJoints());
-            state_velocity = new KDL::JntArray(chain.getNrOfJoints());
 
             // Init inverse dynamics solver.
             KDL::Vector gravity(0, 0, -9.81);
@@ -58,40 +66,38 @@ namespace arm_control
 
         void update(const ros::Time &time, const ros::Duration &period)
         {
+            target_position.data[TOE_FOOT_JOINT] = 0;
+            target_position.data[FOOT_LEG_JOINT] = M_PI / 4;
+            target_position.data[LEG_ARM_JOINT] = M_PI / 4;
+            target_position.data[ARM_HAND_JOINT] = 0;
+            target_position.data[HAND_FINGER_JOINT] = M_PI / 2;
 
-            KDL::Wrenches wrenches(5);
-            KDL::JntArray zero(5);
-            KDL::JntArray target(5);
-            target.data[TOE_FOOT_JOINT] = 0;
-            target.data[FOOT_LEG_JOINT] = M_PI / 3;
-            target.data[LEG_ARM_JOINT] = M_PI / 3;
-            target.data[ARM_HAND_JOINT] = 0;
-            target.data[HAND_FINGER_JOINT] = M_PI / 3;
-            KDL::JntArray gravity_torques(5);
-
-            // Iterate over the joints to update the state.
+            // Iterate over the joints to update the current state.
             for (JointHandleMap::iterator it = joints_handles.begin(); it != joints_handles.end(); ++it) {
                 hardware_interface::JointHandle joint = it->second;
 
-                state_position->data[it->first] = it->second.getPosition();
-                state_velocity->data[it->first] = it->second.getVelocity();
+                state_position.data[it->first] = joint.getPosition();
+                state_velocity.data[it->first] = joint.getVelocity();
 
-                // double error = (M_PI / 4) - joint.getPosition();
-                // joint.setCommand(error * 100);
+                // Compute outer loop control (just a PD)
+                outer_loop_control.data[it->first] =
+                        - (state_position.data[it->first] - target_position.data[it->first]) * 100
+                        - (state_velocity.data[it->first] - target_velocity.data[it->first]) * 10;
             }
 
-            // Compute the gravity term.
-            if (solver->CartToJnt(*state_position, zero, zero, wrenches, gravity_torques) != 0) {
-                ROS_ERROR("error computing the gravity term");
+            // No external forces (except gravity).
+            KDL::Wrenches external_forces(5);
+
+            // Solve inverse dynamics (inner loop control).
+            if (solver->CartToJnt(state_position, state_velocity, outer_loop_control, external_forces, inner_loop_control) != 0) {
+                ROS_ERROR("error solving inverse dynamics");
             };
 
-            // Iterate over the joints to update the command.
+            // Apply the computed torques command to each joint.
             for (JointHandleMap::iterator it = joints_handles.begin(); it != joints_handles.end(); ++it) {
                 hardware_interface::JointHandle joint = it->second;
 
-                double error = (M_PI / 4) - state_position->data[it->first];
-                ROS_ERROR("torque: %f\n",gravity_torques.data[it->first]);
-                joint.setCommand(gravity_torques.data[it->first] + error * 10);
+                joint.setCommand(inner_loop_control.data[it->first]);
             }
         }
 
@@ -121,8 +127,7 @@ namespace arm_control
         KDL::ChainIdSolver_RNE *solver;
 
         // Current joint state.
-        KDL::JntArray *state_position, *state_velocity;
-
+        KDL::JntArray state_position, target_position, state_velocity, target_velocity, inner_loop_control, outer_loop_control;
     };
 
     PLUGINLIB_EXPORT_CLASS(arm_control::ArmController, controller_interface::ControllerBase);
