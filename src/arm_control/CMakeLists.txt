@@ -10,12 +10,14 @@ project(arm_control)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   pluginlib
+  kdl_parser
   hardware_interface
   controller_interface
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(orocos_kdl)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures

@@ -2,7 +2,7 @@
 
   <class name="arm_control/ArmController" type="arm_control::ArmController" base_class_type="controller_interface::ControllerBase">
     <description>
-      The ArmController bla bla bla...
+      The ArmController description.
     </description>
   </class>
 

@@ -43,6 +43,8 @@
   <build_depend>roscpp</build_depend>
 
   <depend>pluginlib</depend>
+  <depend>kdl_parser</depend>
+  <depend>orocos_kdl</depend>
   <depend>gazebo-ros-control</depend>
   <depend>controller_interface</depend>
 
