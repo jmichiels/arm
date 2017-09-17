@@ -1,5 +1,9 @@
 #include "ros/ros.h"
+#include <boost/scoped_ptr.hpp>
 #include <kdl_parser/kdl_parser.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainiksolverpos_nr.hpp>
 #include <kdl/chainidsolver_recursive_newton_euler.hpp>
 #include <controller_interface/controller.h>
 #include <hardware_interface/joint_command_interface.h>
@@ -10,12 +14,11 @@ namespace arm_control
     class ArmController : public controller_interface::Controller<hardware_interface::EffortJointInterface>
     {
     public:
-
         ArmController() :
-                state_position(5),
-                state_velocity(5),
-                target_position(5),
-                target_velocity(5),
+                joints_positions(5),
+                joints_velocities(5),
+                target_joints_positions(5),
+                target_joints_velocities(5),
                 inner_loop_control(5),
                 outer_loop_control(5)
         {}
@@ -58,39 +61,40 @@ namespace arm_control
             }
 
             // Init inverse dynamics solver.
-            KDL::Vector gravity(0, 0, -9.81);
-            solver = new KDL::ChainIdSolver_RNE(chain, gravity);
+            id_solver.reset(new KDL::ChainIdSolver_RNE(chain, KDL::Vector(0, 0, -9.81)));
 
             return true;
         }
 
         void update(const ros::Time &time, const ros::Duration &period)
         {
-            target_position.data[TOE_FOOT_JOINT] = 0;
-            target_position.data[FOOT_LEG_JOINT] = M_PI / 4;
-            target_position.data[LEG_ARM_JOINT] = M_PI / 4;
-            target_position.data[ARM_HAND_JOINT] = 0;
-            target_position.data[HAND_FINGER_JOINT] = M_PI / 2;
-
             // Iterate over the joints to update the current state.
             for (JointHandleMap::iterator it = joints_handles.begin(); it != joints_handles.end(); ++it) {
-                hardware_interface::JointHandle joint = it->second;
 
-                state_position.data[it->first] = joint.getPosition();
-                state_velocity.data[it->first] = joint.getVelocity();
+                joints_positions.data[it->first] = it->second.getPosition();
+                joints_velocities.data[it->first] = it->second.getVelocity();
+            }
 
-                // Compute outer loop control (just a PD)
+            // Iterate over the joints to compute outer loop control (just a PD)
+            for (JointHandleMap::iterator it = joints_handles.begin(); it != joints_handles.end(); ++it) {
+
                 outer_loop_control.data[it->first] =
-                        - (state_position.data[it->first] - target_position.data[it->first]) * 100
-                        - (state_velocity.data[it->first] - target_velocity.data[it->first]) * 10;
+                        (target_joints_positions.data[it->first] - joints_positions.data[it->first]) * 100
+                        + (target_joints_velocities.data[it->first] - joints_velocities.data[it->first]) * 10;
             }
 
             // No external forces (except gravity).
             KDL::Wrenches external_forces(5);
 
-            // Solve inverse dynamics (inner loop control).
-            if (solver->CartToJnt(state_position, state_velocity, outer_loop_control, external_forces, inner_loop_control) != 0) {
+            // Solve inverse dynamics (inner loop control).dd
+            if (id_solver->CartToJnt(
+                    joints_positions,
+                    joints_velocities,
+                    outer_loop_control,
+                    external_forces,
+                    inner_loop_control) != 0) {
                 ROS_ERROR("error solving inverse dynamics");
+                return;
             };
 
             // Apply the computed torques command to each joint.
@@ -124,10 +128,14 @@ namespace arm_control
         JointHandleMap joints_handles;
 
         // Inverse Dynamics Solver.
-        KDL::ChainIdSolver_RNE *solver;
+        boost::scoped_ptr<KDL::ChainIdSolver_RNE> id_solver;
 
-        // Current joint state.
-        KDL::JntArray state_position, target_position, state_velocity, target_velocity, inner_loop_control, outer_loop_control;
+        // Joints state.
+        KDL::JntArray
+                joints_positions, target_joints_positions,
+                joints_velocities, target_joints_velocities,
+                inner_loop_control,
+                outer_loop_control;
     };
 
     PLUGINLIB_EXPORT_CLASS(arm_control::ArmController, controller_interface::ControllerBase);
