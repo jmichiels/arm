@@ -5,4 +5,4 @@ joint_state_controller:
 
 # Control all joints
 arm_controller:
-  type: arm_control/ArmController
+  type: arm_control/JointStateController
