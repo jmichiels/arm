@@ -1,8 +1,8 @@
 <library path="lib/libarm_control">
 
-  <class name="arm_control/JointStateController" type="arm_control::JointStateController" base_class_type="controller_interface::ControllerBase">
+  <class name="arm_control/JointTrajectoryController" type="arm_control::JointTrajectoryController" base_class_type="controller_interface::ControllerBase">
     <description>
-      The JointStateController description.
+      The JointTrajectoryController description.
     </description>
   </class>
 

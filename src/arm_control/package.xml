@@ -47,6 +47,7 @@
   <depend>orocos_kdl</depend>
   <depend>gazebo-ros-control</depend>
   <depend>controller_interface</depend>
+  <depend>joint_trajectory_controller</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
