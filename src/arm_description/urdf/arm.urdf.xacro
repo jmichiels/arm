@@ -89,8 +89,8 @@
       <axis xyz="${axis}"/>
       <limit effort="40.0"
              velocity="1.0"
-             lower="${-PI/2}"
-             upper="${PI/2}"/>
+             lower="${-PI}"
+             upper="${PI}"/>
     </joint>
 
     <!-- Required for ROS control -->
