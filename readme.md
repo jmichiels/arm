@@ -7,19 +7,31 @@ This repository contains the simulation of a custom robotic arm. This was done i
 ___
 
 #### Usage
- Launch the gazebo simulation:
- ```
- roslaunch arm_gazebo empty_world.launch
- ```
- Launch the controller along with RViz:
- ```
- roslaunch arm_control rviz.launch
- ```
- Launch the controller along with RViz:
- ```
- roslaunch arm_control rviz.launch
- ```
- You can now use the MoveIt! plugin in Rviz to control the arm.
+Install dependencies:
+```
+rosdep install --from-paths src --ignore-src -r -y
+```
+Build catkin workspace:
+```
+catkin_make
+```
+Init the environment:
+```
+source devel/setup.sh
+```
+Launch the gazebo simulation:
+```
+roslaunch arm_gazebo empty_world.launch
+```
+Launch the controller along with RViz:
+```
+roslaunch arm_control rviz.launch
+```
+Launch the MoveIt! move group:
+```
+roslaunch arm_control moveit.launch
+```
+You can now use the MoveIt! plugin in Rviz to control the arm.
 ___
 
 **[Gazebo](http://gazebosim.org/)**
