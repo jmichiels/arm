@@ -2,16 +2,18 @@
 #include <kdl/jntarrayvel.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 #include <kdl/chainidsolver_recursive_newton_euler.hpp>
+#include <trajectory_interface/quintic_spline_segment.h>
+#include <joint_trajectory_controller/joint_trajectory_controller.h>
 
-namespace arm_control
+namespace joint_trajectory_controller
 {
-    class EffortJointInterface : public hardware_interface::EffortJointInterface
-    {
-    };
+    typedef trajectory_interface::QuinticSplineSegment<double> SegmentImpl;
+    typedef JointTrajectorySegment<SegmentImpl> Segment;
+    typedef typename Segment::State State;
 }
 
-template <class State>
-class HardwareInterfaceAdapter<arm_control::EffortJointInterface, State>
+template <>
+class HardwareInterfaceAdapter<hardware_interface::EffortJointInterface, joint_trajectory_controller::State>
 {
 public:
     HardwareInterfaceAdapter() :
@@ -75,8 +77,8 @@ public:
 
     void updateCommand(const ros::Time &     /*time*/,
                        const ros::Duration & /*period*/,
-                       const State &desired_state,
-                       const State &state_error)
+                       const joint_trajectory_controller::State &desired_state,
+                       const joint_trajectory_controller::State &state_error)
     {
         if (!joint_handles_ptr) { return; }
 
