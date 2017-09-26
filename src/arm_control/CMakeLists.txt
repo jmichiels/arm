@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   pluginlib
   kdl_parser
+  realtime_tools
   hardware_interface
   controller_interface
   joint_trajectory_controller)

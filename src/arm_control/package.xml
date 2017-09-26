@@ -45,6 +45,7 @@
   <depend>pluginlib</depend>
   <depend>kdl_parser</depend>
   <depend>orocos_kdl</depend>
+  <depend>realtime_tools</depend>
   <depend>gazebo-ros-control</depend>
   <depend>controller_interface</depend>
   <depend>joint_trajectory_controller</depend>

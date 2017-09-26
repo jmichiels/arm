@@ -1,0 +1,12 @@
+<launch>
+
+  <!-- Launch the Gazebo simulation -->
+  <include file="$(find arm_gazebo)/launch/empty_world.launch"/>
+
+  <!-- Launch the joint trajectory controller -->
+  <include file="$(find arm_control)/launch/control.launch"/>
+
+  <!-- Launch the MoveIt! move group -->
+  <include file="$(find arm_control)/launch/moveit.launch"/>
+
+</launch>

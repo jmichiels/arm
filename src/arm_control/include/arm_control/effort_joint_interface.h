@@ -1,6 +1,7 @@
 #include "ros/ros.h"
 #include <kdl/jntarrayvel.hpp>
 #include <kdl_parser/kdl_parser.hpp>
+#include <realtime_tools/realtime_publisher.h>
 #include <kdl/chainidsolver_recursive_newton_euler.hpp>
 #include <trajectory_interface/quintic_spline_segment.h>
 #include <joint_trajectory_controller/joint_trajectory_controller.h>
@@ -12,7 +13,7 @@ namespace joint_trajectory_controller
     typedef typename Segment::State State;
 }
 
-template <>
+template<>
 class HardwareInterfaceAdapter<hardware_interface::EffortJointInterface, joint_trajectory_controller::State>
 {
 public:
@@ -22,41 +23,58 @@ public:
 
     bool init(std::vector<hardware_interface::JointHandle> &joint_handles, ros::NodeHandle &nh)
     {
-        ROS_INFO("Init inverse dynamics interface");
-
         // Store pointer to joint handles
         joint_handles_ptr = &joint_handles;
 
-        // Get the URDF from the parameter server.
-        std::string robot_description_urdf;
-        if (!nh.getParam("/robot_description", robot_description_urdf)) {
-            ROS_ERROR("'robot description' not found");
+        // Parse the URDF string into a URDF model.
+        urdf::Model urdf_model;
+        if (!urdf_model.initParam("/robot_description")) {
+            ROS_ERROR("Failed to parse urdf model from robot description");
             return false;
         }
+        ROS_INFO("Parsed urdf model from robot description");
 
         // Compute the KDL tree of the robot from the URDF.
         KDL::Tree tree;
-        if (!kdl_parser::treeFromString(robot_description_urdf, tree)) {
-            ROS_ERROR("failed to construct kdl tree");
+        if (!kdl_parser::treeFromUrdfModel(urdf_model, tree)) {
+            ROS_ERROR("Failed to parse kdl tree from urdf model");
             return false;
         }
+        ROS_INFO("Parsed kdl tree from urdf model");
 
         // Extract chain from KDL tree.
         KDL::Chain chain;
         if (!tree.getChain("toe", "finger", chain)) {
-            ROS_ERROR("failed to extract kdl chain from tree between");
+            ROS_ERROR("Failed to extract chain from 'toe' to 'finger' in kdl tree");
             return false;
         }
+        ROS_INFO("Extracted chain from kdl tree");
+
+        // Reset and resize joint states/controls.
+        unsigned int n_joints = chain.getNrOfJoints();
+        inner_loop_control.resize(n_joints);
+        outer_loop_control.resize(n_joints);
+        joints_effort_limits.resize(n_joints);
+        joints_state.resize(n_joints);
+
+        for (unsigned int idx = 0; idx < chain.getNrOfJoints(); idx++) {
+            // Get joint name.
+            std::string name = chain.getSegment(idx).getJoint().getName();
+
+            // Extract joint effort limits from urdf.
+            if (!(urdf_model.getJoint(name)) ||
+                !(urdf_model.getJoint(name)->limits) ||
+                !(urdf_model.getJoint(name)->limits->effort)) {
+                ROS_ERROR("No effort limit specified for joint '%s'", name.c_str());
+                return false;
+            }
+            joints_effort_limits.data[idx] = urdf_model.getJoint(name)->limits->effort;
+        }
+        ROS_INFO("Extracted joint effort limits");
 
         // Init inverse dynamics solver.
         id_solver.reset(new KDL::ChainIdSolver_RNE(chain, KDL::Vector(0, 0, -9.81)));
-
-        // Reset and resize joint states.
-        unsigned int n_joints = chain.getNrOfJoints();
-        joints_state.resize(n_joints);
-        joints_target.resize(n_joints);
-        inner_loop_control.resize(n_joints);
-        outer_loop_control.resize(n_joints);
+        ROS_INFO("Initialized kdl inverse dynamics solver");
 
         return true;
     }
@@ -65,8 +83,7 @@ public:
     {
         if (!joint_handles_ptr) { return; }
 
-        for (unsigned int idx = 0; idx < joint_handles_ptr->size(); ++idx)
-        {
+        for (unsigned int idx = 0; idx < joint_handles_ptr->size(); ++idx) {
             // Write joint effort command.
             (*joint_handles_ptr)[idx].setCommand(0);
         }
@@ -107,10 +124,15 @@ public:
             return;
         };
 
-        for (unsigned int idx = 0; idx < joint_handles_ptr->size(); ++idx)
-        {
+        for (unsigned int idx = 0; idx < joint_handles_ptr->size(); ++idx) {
+            double command = inner_loop_control.data[idx];
+
+            // Limit based on min/max efforts.
+            command = std::min(command, joints_effort_limits.data[idx]);
+            command = std::max(command, -joints_effort_limits.data[idx]);
+
             // Write joint effort command.
-            (*joint_handles_ptr)[idx].setCommand(inner_loop_control.data[idx]);
+            (*joint_handles_ptr)[idx].setCommand(command);
         }
     }
 
@@ -123,12 +145,11 @@ private:
     boost::scoped_ptr<KDL::ChainIdSolver_RNE> id_solver;
 
     // Joints state.
-    KDL::JntArrayVel
-            joints_state,
-            joints_target;
+    KDL::JntArrayVel joints_state;
 
     // Joints commands.
     KDL::JntArray
+            joints_effort_limits,
             inner_loop_control,
             outer_loop_control;
 };
