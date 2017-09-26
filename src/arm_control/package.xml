@@ -41,7 +41,8 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
-
+  <build_depend>message_generation</build_depend>
+  <depend>message_runtime</depend>
   <depend>pluginlib</depend>
   <depend>kdl_parser</depend>
   <depend>orocos_kdl</depend>

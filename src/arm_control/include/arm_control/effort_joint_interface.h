@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include <kdl/jntarrayvel.hpp>
+#include <arm_control/Efforts.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include <realtime_tools/realtime_publisher.h>
 #include <kdl/chainidsolver_recursive_newton_euler.hpp>
@@ -50,11 +51,18 @@ public:
         }
         ROS_INFO("Extracted chain from kdl tree");
 
+        // Init effort command publisher.
+        publisher.reset(new EffortsPublisher(nh, "efforts", 10));
+
+        // links joints efforts to publisher message.
+        joints_efforts = &(publisher->msg_.data);
+
         // Reset and resize joint states/controls.
         unsigned int n_joints = chain.getNrOfJoints();
         inner_loop_control.resize(n_joints);
         outer_loop_control.resize(n_joints);
         joints_effort_limits.resize(n_joints);
+        (*joints_efforts).resize(n_joints);
         joints_state.resize(n_joints);
 
         for (unsigned int idx = 0; idx < chain.getNrOfJoints(); idx++) {
@@ -125,14 +133,21 @@ public:
         };
 
         for (unsigned int idx = 0; idx < joint_handles_ptr->size(); ++idx) {
-            double command = inner_loop_control.data[idx];
+            (*joints_efforts)[idx] = inner_loop_control.data[idx];
 
             // Limit based on min/max efforts.
-            command = std::min(command, joints_effort_limits.data[idx]);
-            command = std::max(command, -joints_effort_limits.data[idx]);
+            (*joints_efforts)[idx] = std::min((*joints_efforts)[idx], joints_effort_limits.data[idx]);
+            (*joints_efforts)[idx] = std::max((*joints_efforts)[idx], -joints_effort_limits.data[idx]);
 
             // Write joint effort command.
-            (*joint_handles_ptr)[idx].setCommand(command);
+            (*joint_handles_ptr)[idx].setCommand((*joints_efforts)[idx]);
+
+        }
+
+        // Publish efforts.
+        if (publisher->trylock()) {
+            publisher->msg_.header.stamp = ros::Time::now();
+            publisher->unlockAndPublish();
         }
     }
 
@@ -140,6 +155,10 @@ private:
 
     // Joints handles.
     std::vector<hardware_interface::JointHandle> *joint_handles_ptr;
+
+    // Realtime effort command publisher.
+    typedef realtime_tools::RealtimePublisher<arm_control::Efforts> EffortsPublisher;
+    boost::scoped_ptr<EffortsPublisher> publisher;
 
     // Inverse Dynamics Solver.
     boost::scoped_ptr<KDL::ChainIdSolver_RNE> id_solver;
@@ -152,4 +171,7 @@ private:
             joints_effort_limits,
             inner_loop_control,
             outer_loop_control;
+
+    // Joints efforts.
+    std::vector<double> *joints_efforts;
 };
